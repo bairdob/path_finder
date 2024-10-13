@@ -35,6 +35,19 @@ class MainWindow(QMainWindow):
         self.start_button.clicked.connect(self.start_search)
         layout.addWidget(self.start_button)
 
+        # Кнопки для генерации стартовой точки, цели и препятствий
+        self.generate_start_button = QPushButton("Generate Start")
+        self.generate_start_button.clicked.connect(self.generate_start)
+        layout.addWidget(self.generate_start_button)
+
+        self.generate_goal_button = QPushButton("Generate Goal")
+        self.generate_goal_button.clicked.connect(self.generate_goal)
+        layout.addWidget(self.generate_goal_button)
+
+        self.generate_obstacles_button = QPushButton("Generate Obstacles")
+        self.generate_obstacles_button.clicked.connect(self.generate_and_draw_obstacles)
+        layout.addWidget(self.generate_obstacles_button)
+
         # Создаем модель карты
         self.grid = Grid(10, 10)  # 10x10 клеток
 
@@ -98,6 +111,12 @@ class MainWindow(QMainWindow):
 
     def draw_grid(self):
         """ Отрисовка сетки с иконками """
+        # Очищаем текущую сетку
+        for i in reversed(range(self.grid_layout.count())):
+            widget_to_remove = self.grid_layout.itemAt(i).widget()
+            self.grid_layout.removeWidget(widget_to_remove)
+            widget_to_remove.deleteLater()
+
         for x in range(self.grid.rows):
             for y in range(self.grid.cols):
                 label = QLabel()
@@ -145,6 +164,26 @@ class MainWindow(QMainWindow):
 
         QMessageBox.information(self, "Path Found", f"Path: {full_path}")
         self.animate_path(full_path)
+
+    def generate_start(self):
+        """ Генерация случайной стартовой точки на границе """
+        self.start = self.generate_random_edge_position()
+        self.draw_grid()
+
+    def generate_goal(self):
+        """ Генерация случайной целевой точки на границе """
+        self.goal = self.generate_random_edge_position()
+
+        # Убедимся, что старт и цель не совпадают
+        while self.start == self.goal:
+            self.goal = self.generate_random_edge_position()
+
+        self.draw_grid()
+
+    def generate_and_draw_obstacles(self):
+        """ Генерация случайных препятствий и обновление сетки """
+        self.obstacles = self.generate_obstacles()
+        self.draw_grid()
 
     def generate_random_edge_position(self):
         """ Генерирует случайную позицию на границе карты (крае сетки) """
