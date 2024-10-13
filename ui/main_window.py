@@ -1,7 +1,7 @@
 import random
 
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QPixmap, QPalette, QBrush
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import QLabel, QMainWindow, QWidget, QVBoxLayout, QPushButton, QGridLayout, QMessageBox
 
@@ -18,6 +18,9 @@ class MainWindow(QMainWindow):
         # Основной виджет
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
+
+        # Установка фонового изображения для карты-подложки
+        self.set_background_image(central_widget, "resources/background.png")
 
         # Макет
         layout = QVBoxLayout()
@@ -53,6 +56,14 @@ class MainWindow(QMainWindow):
         # Отрисовка сетки
         self.draw_grid()
 
+    def set_background_image(self, widget, image_path):
+        """Устанавливает фоновое изображение для виджета"""
+        palette = QPalette()
+        background = QPixmap(image_path)
+        palette.setBrush(QPalette.Background, QBrush(background))
+        widget.setAutoFillBackground(True)
+        widget.setPalette(palette)
+
     def generate_obstacles(self):
         """Генерация случайных препятствий на сетке"""
         all_cells = [(x, y) for x in range(10) for y in range(10)]
@@ -77,7 +88,6 @@ class MainWindow(QMainWindow):
         # Генерация случайных промежуточных точек
         intermediate_points = random.sample(all_cells, self.n_intermediate)
         return intermediate_points
-
 
     def draw_grid(self):
         """ Отрисовка сетки с иконками """
@@ -106,7 +116,6 @@ class MainWindow(QMainWindow):
 
                 self.grid_layout.addWidget(label, x, y)
 
-
     def start_search(self):
         """ Запуск поиска пути с помощью алгоритма A* """
         start = (0, 0)  # Начальная позиция
@@ -133,7 +142,6 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, "Path Found", f"Path: {full_path}")
         self.animate_path(full_path)
 
-
     def animate_path(self, path):
         """ Анимация движения робота по найденному пути с задержкой """
         self.step_index = 0
@@ -141,7 +149,6 @@ class MainWindow(QMainWindow):
         self.timer = QTimer()
         self.timer.timeout.connect(self.move_robot_step)
         self.timer.start(500)  # Интервал между шагами (500 мс)
-
 
     def move_robot_step(self):
         """ Двигает робота на один шаг """
