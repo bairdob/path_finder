@@ -10,7 +10,7 @@ from models.grid import Grid
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, n_obstacles=10):
+    def __init__(self, n_obstacles=10, n_intermediate=4):
         super().__init__()
         self.setWindowTitle("Path Finder")
         self.setGeometry(100, 100, 600, 600)
@@ -40,12 +40,15 @@ class MainWindow(QMainWindow):
         self.goal_icon = QPixmap("resources/icons/goal.png").scaled(40, 40, Qt.KeepAspectRatio)
         self.obstacle_icon = QPixmap("resources/icons/obstacle.png").scaled(40, 40, Qt.KeepAspectRatio)
         self.robot_icon = QPixmap("resources/icons/robot.png").scaled(40, 40, Qt.KeepAspectRatio)
+        self.intermediate_icon = QPixmap("resources/icons/goal.png").scaled(40, 40, Qt.KeepAspectRatio)
 
-        # Количество препятствий
+        # Количество препятствий и промежуточных точек
         self.n_obstacles = n_obstacles
+        self.n_intermediate = n_intermediate
 
-        # Генерация случайных препятствий
+        # Генерация случайных препятствий и промежуточных точек
         self.obstacles = self.generate_obstacles()
+        self.intermediate_points = self.generate_intermediate_points()
 
         # Отрисовка сетки
         self.draw_grid()
@@ -62,6 +65,19 @@ class MainWindow(QMainWindow):
         obstacles = random.sample(all_cells, self.n_obstacles)
         return obstacles
 
+    def generate_intermediate_points(self):
+        """Генерация случайных промежуточных точек"""
+        all_cells = [(x, y) for x in range(10) for y in range(10)]
+
+        # Убираем стартовую, целевую точки и препятствия
+        all_cells.remove((0, 0))  # Стартовая точка
+        all_cells.remove((9, 9))  # Целевая точка
+        all_cells = [cell for cell in all_cells if cell not in self.obstacles]
+
+        # Генерация случайных промежуточных точек
+        intermediate_points = random.sample(all_cells, self.n_intermediate)
+        return intermediate_points
+
 
     def draw_grid(self):
         """ Отрисовка сетки с иконками """
@@ -75,12 +91,15 @@ class MainWindow(QMainWindow):
                 # Стартовая и целевая точки
                 if (x, y) == (0, 0):
                     label.setPixmap(self.start_icon)
-                    # Целевая точка
+                # Целевая точка
                 elif (x, y) == (9, 9):
                     label.setPixmap(self.goal_icon)
-                    # Препятствия
+                # Препятствия
                 elif (x, y) in self.obstacles:
                     label.setPixmap(self.obstacle_icon)
+                # Промежуточные точки
+                elif (x, y) in self.intermediate_points:
+                    label.setPixmap(self.intermediate_icon)
                 else:
                     # Просто пустая клетка
                     label.setText("")
@@ -97,16 +116,22 @@ class MainWindow(QMainWindow):
         for obstacle in self.obstacles:
             self.grid.add_obstacle(obstacle)
 
+        # Комбинируем точки для поиска пути
+        points = [start] + self.intermediate_points + [goal]
 
-        # Здесь будем вызывать алгоритм A*
+        # Здесь будем вызывать алгоритм A* через все промежуточные точки
         a_star = AStar(self.grid)
-        path = a_star.search(start, goal)
+        full_path = []
+        for i in range(len(points) - 1):
+            path = a_star.search(points[i], points[i + 1])
+            if path:
+                full_path.extend(path)
+            else:
+                QMessageBox.warning(self, "No Path", f"Path not found between {points[i]} and {points[i + 1]}")
+                return
 
-        if path:
-            QMessageBox.information(self, "Path Found", f"Path: {path}")
-            self.animate_path(path)
-        else:
-            QMessageBox.warning(self, "No Path", "Path not found")
+        QMessageBox.information(self, "Path Found", f"Path: {full_path}")
+        self.animate_path(full_path)
 
 
     def animate_path(self, path):
