@@ -32,19 +32,23 @@ class MainWindow(QMainWindow):
 
         # Кнопки управления
         self.start_button = QPushButton("Start Search")
+        self.start_button.setStyleSheet("background-color: #805a00; color: white; padding: 10px;")
         self.start_button.clicked.connect(self.start_search)
         layout.addWidget(self.start_button)
 
         # Кнопки для генерации стартовой точки, цели и препятствий
         self.generate_start_button = QPushButton("Generate Start")
+        self.generate_start_button.setStyleSheet("background-color: #215f23; color: white; padding: 5px;")
         self.generate_start_button.clicked.connect(self.generate_start)
         layout.addWidget(self.generate_start_button)
 
         self.generate_goal_button = QPushButton("Generate Goal")
+        self.generate_goal_button.setStyleSheet("background-color: #215f23; color: white; padding: 5px;")
         self.generate_goal_button.clicked.connect(self.generate_goal)
         layout.addWidget(self.generate_goal_button)
 
         self.generate_obstacles_button = QPushButton("Generate Obstacles")
+        self.generate_obstacles_button.setStyleSheet("background-color: #215f23; color: white; padding: 5px;")
         self.generate_obstacles_button.clicked.connect(self.generate_and_draw_obstacles)
         layout.addWidget(self.generate_obstacles_button)
 
