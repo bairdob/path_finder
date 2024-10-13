@@ -53,6 +53,13 @@ class MainWindow(QMainWindow):
         self.obstacles = self.generate_obstacles()
         self.intermediate_points = self.generate_intermediate_points()
 
+        # Переменные для старта и цели
+        self.start = self.generate_random_edge_position()
+        self.goal = self.generate_random_edge_position()
+        # Убедимся, что старт и цель не совпадают
+        while self.start == self.goal:
+            self.goal = self.generate_random_edge_position()
+
         # Отрисовка сетки
         self.draw_grid()
 
@@ -99,10 +106,10 @@ class MainWindow(QMainWindow):
                 label.setStyleSheet("border: 1px solid black;")
 
                 # Стартовая и целевая точки
-                if (x, y) == (0, 0):
+                if (x, y) == self.start:
                     label.setPixmap(self.start_icon)
                 # Целевая точка
-                elif (x, y) == (9, 9):
+                elif (x, y) == self.goal:
                     label.setPixmap(self.goal_icon)
                 # Препятствия
                 elif (x, y) in self.obstacles:
@@ -118,15 +125,12 @@ class MainWindow(QMainWindow):
 
     def start_search(self):
         """ Запуск поиска пути с помощью алгоритма A* """
-        start = (0, 0)  # Начальная позиция
-        goal = (9, 9)  # Целевая позиция
-
         # Добавляем препятствия в модель карты
         for obstacle in self.obstacles:
             self.grid.add_obstacle(obstacle)
 
         # Комбинируем точки для поиска пути
-        points = [start] + self.intermediate_points + [goal]
+        points = [self.start] + self.intermediate_points + [self.goal]
 
         # Здесь будем вызывать алгоритм A* через все промежуточные точки
         a_star = AStar(self.grid)
@@ -141,6 +145,23 @@ class MainWindow(QMainWindow):
 
         QMessageBox.information(self, "Path Found", f"Path: {full_path}")
         self.animate_path(full_path)
+
+    def generate_random_edge_position(self):
+        """ Генерирует случайную позицию на границе карты (крае сетки) """
+        rows = self.grid.rows - 1
+        cols = self.grid.cols - 1
+
+        # Генерируем случайную позицию на границе
+        if random.choice([True, False]):  # Выбираем между горизонтальной или вертикальной границей
+            # Горизонтальная граница (первый или последний ряд)
+            x = random.choice([0, rows])
+            y = random.randint(0, cols)
+        else:
+            # Вертикальная граница (первая или последняя колонка)
+            x = random.randint(0, rows)
+            y = random.choice([0, cols])
+
+        return x, y
 
     def animate_path(self, path):
         """ Анимация движения робота по найденному пути с задержкой """
