@@ -43,7 +43,7 @@ class MainWindow(QMainWindow):
         self.goal_icon = QPixmap("resources/icons/goal.png").scaled(40, 40, Qt.KeepAspectRatio)
         self.obstacle_icon = QPixmap("resources/icons/obstacle.png").scaled(40, 40, Qt.KeepAspectRatio)
         self.robot_icon = QPixmap("resources/icons/robot.png").scaled(40, 40, Qt.KeepAspectRatio)
-        self.intermediate_icon = QPixmap("resources/icons/goal.png").scaled(40, 40, Qt.KeepAspectRatio)
+        self.intermediate_icon = QPixmap("resources/icons/flag.png").scaled(40, 40, Qt.KeepAspectRatio)
 
         # Количество препятствий и промежуточных точек
         self.n_obstacles = n_obstacles
