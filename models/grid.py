@@ -25,8 +25,11 @@ class Grid:
         return self.is_within_bounds(position) and not self.is_obstacle(position)
 
     def neighbors(self, position):
-        """Возвращает соседние клетки (в пределах карты и проходимые)"""
+        """Возвращает соседние клетки (в пределах карты и проходимые), включая диагональные"""
         x, y = position
-        candidates = [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]
+        candidates = [
+            (x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1),  # горизонтальные и вертикальные
+            (x - 1, y - 1), (x - 1, y + 1), (x + 1, y - 1), (x + 1, y + 1)  # диагональные
+        ]
         # Возвращаем только клетки, которые в пределах карты и не являются препятствиями
         return [pos for pos in candidates if self.is_walkable(pos)]

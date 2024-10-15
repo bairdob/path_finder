@@ -25,7 +25,9 @@ class AStar:
                 return self.reconstruct_path(came_from, start, goal)
 
             for next in self.grid.neighbors(current):
-                new_cost = cost_so_far[current] + 1  # Стоимость движения
+                # Определяем, является ли ход диагональным (если обе координаты изменились)
+                step_cost = 1.41 if next[0] != current[0] and next[1] != current[1] else 1
+                new_cost = cost_so_far[current] + step_cost
 
                 if next not in cost_so_far or new_cost < cost_so_far[next]:
                     cost_so_far[next] = new_cost
