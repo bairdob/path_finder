@@ -67,8 +67,8 @@ class MainWindow(QMainWindow):
         self.n_intermediate = n_intermediate
 
         # Генерация случайных препятствий и промежуточных точек
-        self.obstacles = self.generate_obstacles()
         self.intermediate_points = self.generate_intermediate_points()
+        self.obstacles = self.generate_obstacles()
 
         # Переменные для старта и цели
         self.start = self.generate_random_edge_position()
@@ -92,9 +92,10 @@ class MainWindow(QMainWindow):
         """Генерация случайных препятствий на сетке"""
         all_cells = [(x, y) for x in range(10) for y in range(10)]
 
-        # Убираем стартовую и целевую точки из возможных препятствий
+        # Убираем стартовую и целевую точки и цели из возможных препятствий
         all_cells.remove((0, 0))  # Стартовая точка
         all_cells.remove((9, 9))  # Целевая точка
+        all_cells = [cell for cell in all_cells if cell not in self.intermediate_points]
 
         # Генерация случайных n препятствий
         obstacles = random.sample(all_cells, self.n_obstacles)
@@ -107,7 +108,6 @@ class MainWindow(QMainWindow):
         # Убираем стартовую, целевую точки и препятствия
         all_cells.remove((0, 0))  # Стартовая точка
         all_cells.remove((9, 9))  # Целевая точка
-        all_cells = [cell for cell in all_cells if cell not in self.obstacles]
 
         # Генерация случайных промежуточных точек
         intermediate_points = random.sample(all_cells, self.n_intermediate)
