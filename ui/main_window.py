@@ -67,7 +67,7 @@ class MainWindow(QMainWindow):
         self.n_intermediate = n_intermediate
 
         # Генерация случайных препятствий и промежуточных точек
-        self.intermediate_points = self.generate_intermediate_points()
+        self.intermediate_points = self.initialize_goal_from_ontology()
         self.obstacles = self.generate_obstacles()
 
         # Переменные для старта и цели
@@ -235,3 +235,14 @@ class MainWindow(QMainWindow):
 
         # Обновляем интерфейс
         QApplication.processEvents()
+
+    def initialize_goal_from_ontology(self):
+        """Инициализация цедей на основе данных из онтологии"""
+        from owlready2 import get_ontology
+
+        goals = []
+        onto = get_ontology("ui/goal.xml").load()
+        for goal in onto.Goal.instances():
+            point = goal.x_position[0], goal.y_position[0]
+            goals.append(point)
+        return goals
