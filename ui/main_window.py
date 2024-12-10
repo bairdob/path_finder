@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QLabel, QMainWindow, QWidget, QVBoxLayout, QPushButt
 
 from algorithms.a_star import AStar
 from models.grid import Grid
+from ui.state_manager import StateManager, StatesEnum
 
 
 class MainWindow(QMainWindow):
@@ -25,6 +26,13 @@ class MainWindow(QMainWindow):
         # Макет
         layout = QVBoxLayout()
         central_widget.setLayout(layout)
+
+        # Текстовое поле состояния
+        self.state_label = QLabel()
+        self.state_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #000000;")
+        layout.addWidget(self.state_label)
+        # Менеджер состояний
+        self.state_manager = StateManager(self.state_label)
 
         # Сетка для отображения карты
         self.grid_layout = QGridLayout()
@@ -115,6 +123,7 @@ class MainWindow(QMainWindow):
 
     def draw_grid(self):
         """ Отрисовка сетки с иконками """
+        self.state_manager.set_state(StatesEnum.IDLE)
         # Очищаем текущую сетку
         for i in reversed(range(self.grid_layout.count())):
             widget_to_remove = self.grid_layout.itemAt(i).widget()
@@ -155,7 +164,12 @@ class MainWindow(QMainWindow):
         # Комбинируем точки для поиска пути
         points = [self.start] + self.intermediate_points + [self.goal]
 
+        if not self.state_manager.is_state(StatesEnum.IDLE):
+            QMessageBox.warning(self, "Ошибка", "Робот уже выполняет задачу!")
+            return
+
         # Здесь будем вызывать алгоритм A* через все промежуточные точки
+        self.state_manager.set_state(StatesEnum.PATH_FINDING)
         a_star = AStar(self.grid)
         full_path = []
         for i in range(len(points) - 1):
@@ -222,6 +236,13 @@ class MainWindow(QMainWindow):
 
         step = self.path[self.step_index]
         self.step_index += 1
+
+        if step in self.intermediate_points:
+            self.state_manager.set_state(StatesEnum.CAPTURE)
+        elif step == self.goal:
+            self.state_manager.set_state(StatesEnum.FINISH)
+        else:
+            self.state_manager.set_state(StatesEnum.MOVING)
 
         # Очищаем предыдущий шаг
         if self.step_index > 1:
