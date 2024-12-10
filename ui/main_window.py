@@ -1,4 +1,5 @@
 import random
+from typing import Callable
 
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QPixmap, QPalette, QBrush
@@ -34,41 +35,25 @@ class MainWindow(QMainWindow):
         self.set_background_image(central_widget, "resources/background.png")
 
         # Макет
-        layout = QVBoxLayout()
-        central_widget.setLayout(layout)
+        self.layout = QVBoxLayout()
+        central_widget.setLayout(self.layout)
 
         # Текстовое поле состояния
         self.state_label = QLabel()
         self.state_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #000000;")
-        layout.addWidget(self.state_label)
+        self.layout.addWidget(self.state_label)
         # Менеджер состояний
         self.state_manager = StateManager(self.state_label)
 
         # Сетка для отображения карты
         self.grid_layout = QGridLayout()
-        layout.addLayout(self.grid_layout)
+        self.layout.addLayout(self.grid_layout)
 
-        # Кнопки управления
-        self.start_button = QPushButton("Start Search")
-        self.start_button.setStyleSheet("background-color: #805a00; color: white; padding: 10px;")
-        self.start_button.clicked.connect(self.start_search)
-        layout.addWidget(self.start_button)
-
-        # Кнопки для генерации стартовой точки, цели и препятствий
-        self.generate_start_button = QPushButton("Generate Start")
-        self.generate_start_button.setStyleSheet("background-color: #215f23; color: white; padding: 5px;")
-        self.generate_start_button.clicked.connect(self.generate_start)
-        layout.addWidget(self.generate_start_button)
-
-        self.generate_end_button = QPushButton("Generate Goal")
-        self.generate_end_button.setStyleSheet("background-color: #215f23; color: white; padding: 5px;")
-        self.generate_end_button.clicked.connect(self.generate_end)
-        layout.addWidget(self.generate_end_button)
-
-        self.generate_obstacles_button = QPushButton("Generate Obstacles")
-        self.generate_obstacles_button.setStyleSheet("background-color: #215f23; color: white; padding: 5px;")
-        self.generate_obstacles_button.clicked.connect(self.generate_and_draw_obstacles)
-        layout.addWidget(self.generate_obstacles_button)
+        # Кнопки поиска и генерации стартовой точки, цели и препятствий
+        self.search_button = self.create_button("Start Search", self.start_search, "background-color: #805a00; color: white; padding: 10px;")
+        self.generate_start_button = self.create_button("Generate Start", self.generate_start)
+        self.generate_end_button = self.create_button("Generate Goal", self.generate_end)
+        self.generate_obstacles_button = self.create_button("Generate Obstacles", self.generate_and_draw_obstacles)
 
         # Создаем модель карты
         self.grid = Grid(10, 10)  # 10x10 клеток
@@ -85,11 +70,7 @@ class MainWindow(QMainWindow):
         self.obstacles = self.generate_obstacles()
 
         # Переменные для старта и цели
-        self.start = self.generate_random_edge_position()
-        self.end = self.generate_random_edge_position()
-        # Убедимся, что старт и цель не совпадают
-        while self.start == self.end:
-            self.end = self.generate_random_edge_position()
+        self.start, self.end = self.init_start_end_points()
 
         # Отрисовка сетки
         self.draw_grid()
@@ -102,13 +83,26 @@ class MainWindow(QMainWindow):
         widget.setAutoFillBackground(True)
         widget.setPalette(palette)
 
+    def create_button(self, text: str, callback: Callable, style: str = "background-color: #215f23; color: white; padding: 5px;"):
+        """Создание кнопки."""
+        button = QPushButton(text)
+        button.setStyleSheet(style)
+        button.clicked.connect(callback)
+        self.layout.addWidget(button)
+        return button
+
+    def init_start_end_points(self):
+        """Генерация случайных стартовой и целевой точек."""
+        start = self.generate_random_edge_position()
+        end = self.generate_random_edge_position()
+        # Убедимся, что старт и цель не совпадают
+        while start == end:
+            end = self.generate_random_edge_position()
+        return start, end
+
     def generate_obstacles(self):
         """Генерация случайных препятствий на сетке"""
-        all_cells = [(x, y) for x in range(10) for y in range(10)]
-
-        # Убираем стартовую и целевую точки и цели из возможных препятствий
-        all_cells.remove((0, 0))  # Стартовая точка
-        all_cells.remove((9, 9))  # Целевая точка
+        all_cells = [(x, y) for x in range(self.grid.rows) for y in range(self.grid.cols)]
         all_cells = [cell for cell in all_cells if cell not in self.goals]
 
         # Генерация случайных n препятствий
@@ -117,11 +111,7 @@ class MainWindow(QMainWindow):
 
     def generate_intermediate_points(self):
         """Генерация случайных промежуточных точек"""
-        all_cells = [(x, y) for x in range(10) for y in range(10)]
-
-        # Убираем стартовую, целевую точки и препятствия
-        all_cells.remove((0, 0))  # Стартовая точка
-        all_cells.remove((9, 9))  # Целевая точка
+        all_cells = [(x, y) for x in range(self.grid.rows) for y in range(self.grid.cols)]
 
         # Генерация случайных промежуточных точек
         intermediate_points = random.sample(all_cells, self.n_goals)
@@ -129,7 +119,6 @@ class MainWindow(QMainWindow):
 
     def draw_grid(self):
         """ Отрисовка сетки с иконками """
-        self.state_manager.set_state(StatesEnum.IDLE)
         # Очищаем текущую сетку
         for i in reversed(range(self.grid_layout.count())):
             widget_to_remove = self.grid_layout.itemAt(i).widget()
@@ -138,28 +127,31 @@ class MainWindow(QMainWindow):
 
         for x in range(self.grid.rows):
             for y in range(self.grid.cols):
-                label = QLabel()
-                label.setFixedSize(40, 40)
-                label.setAlignment(Qt.AlignCenter)
-                label.setStyleSheet("border: 1px solid black;")
-
-                # Стартовая и целевая точки
-                if (x, y) == self.start:
-                    label.setPixmap(self.start_icon)
-                # Целевая точка
-                elif (x, y) == self.end:
-                    label.setPixmap(self.end_icon)
-                # Препятствия
-                elif (x, y) in self.obstacles:
-                    label.setPixmap(self.obstacle_icon)
-                # Промежуточные точки
-                elif (x, y) in self.goals:
-                    label.setPixmap(self.goal_icon)
-                else:
-                    # Просто пустая клетка
-                    label.setText("")
-
+                label = self.create_label_type(x, y)
                 self.grid_layout.addWidget(label, x, y)
+
+    def create_label_type(self, x, y):
+        """Установка иконки для клетки согласно её состоянию."""
+        label = QLabel()
+        label.setFixedSize(40, 40)
+        label.setAlignment(Qt.AlignCenter)
+        label.setStyleSheet("border: 1px solid black;")
+        # Стартовая и целевая точки
+        if (x, y) == self.start:
+            label.setPixmap(self.start_icon)
+        # Целевая точка
+        elif (x, y) == self.end:
+            label.setPixmap(self.end_icon)
+        # Препятствия
+        elif (x, y) in self.obstacles:
+            label.setPixmap(self.obstacle_icon)
+        # Промежуточные точки
+        elif (x, y) in self.goals:
+            label.setPixmap(self.goal_icon)
+        else:
+            # Просто пустая клетка
+            label.setText("")
+        return label
 
     def start_search(self):
         """ Запуск поиска пути с помощью алгоритма A* """
