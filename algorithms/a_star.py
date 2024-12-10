@@ -10,7 +10,7 @@ class AStar:
         return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
     def search(self, start, goal):
-        """ Поиск пути от start до goal """
+        """ Поиск пути от start до end """
         frontier = PriorityQueue()
         frontier.put((0, start))
         came_from = {}
@@ -38,7 +38,7 @@ class AStar:
         return None  # Если путь не найден
 
     def reconstruct_path(self, came_from, start, goal):
-        """ Восстановление пути от goal до start """
+        """ Восстановление пути от end до start """
         current = goal
         path = [current]
         while current != start:

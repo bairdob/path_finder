@@ -11,8 +11,18 @@ from ui.state_manager import StateManager, StatesEnum
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, n_obstacles=10, n_intermediate=4):
+    def __init__(self, number_obstacles=10, number_goals=4):
+        """
+
+        :param number_obstacles: количество препятствий
+        :param number_goals: количество целей
+        """
         super().__init__()
+
+        # Количество препятствий и промежуточных точек
+        self.n_obstacles = number_obstacles
+        self.n_goals = number_goals
+
         self.setWindowTitle("Path Finder")
         self.setGeometry(100, 100, 600, 600)
 
@@ -50,10 +60,10 @@ class MainWindow(QMainWindow):
         self.generate_start_button.clicked.connect(self.generate_start)
         layout.addWidget(self.generate_start_button)
 
-        self.generate_goal_button = QPushButton("Generate Goal")
-        self.generate_goal_button.setStyleSheet("background-color: #215f23; color: white; padding: 5px;")
-        self.generate_goal_button.clicked.connect(self.generate_goal)
-        layout.addWidget(self.generate_goal_button)
+        self.generate_end_button = QPushButton("Generate Goal")
+        self.generate_end_button.setStyleSheet("background-color: #215f23; color: white; padding: 5px;")
+        self.generate_end_button.clicked.connect(self.generate_end)
+        layout.addWidget(self.generate_end_button)
 
         self.generate_obstacles_button = QPushButton("Generate Obstacles")
         self.generate_obstacles_button.setStyleSheet("background-color: #215f23; color: white; padding: 5px;")
@@ -65,25 +75,21 @@ class MainWindow(QMainWindow):
 
         # Иконки
         self.start_icon = QPixmap("resources/icons/start.png").scaled(40, 40, Qt.KeepAspectRatio)
-        self.goal_icon = QPixmap("resources/icons/goal.png").scaled(40, 40, Qt.KeepAspectRatio)
+        self.end_icon = QPixmap("resources/icons/end.png").scaled(40, 40, Qt.KeepAspectRatio)
         self.obstacle_icon = QPixmap("resources/icons/obstacle.png").scaled(40, 40, Qt.KeepAspectRatio)
         self.robot_icon = QPixmap("resources/icons/robot.png").scaled(40, 40, Qt.KeepAspectRatio)
-        self.intermediate_icon = QPixmap("resources/icons/flag.png").scaled(40, 40, Qt.KeepAspectRatio)
-
-        # Количество препятствий и промежуточных точек
-        self.n_obstacles = n_obstacles
-        self.n_intermediate = n_intermediate
+        self.goal_icon = QPixmap("resources/icons/goal.png").scaled(40, 40, Qt.KeepAspectRatio)
 
         # Генерация случайных препятствий и промежуточных точек
-        self.intermediate_points = self.initialize_goal_from_ontology()
+        self.goals = self.initialize_goal_from_ontology()
         self.obstacles = self.generate_obstacles()
 
         # Переменные для старта и цели
         self.start = self.generate_random_edge_position()
-        self.goal = self.generate_random_edge_position()
+        self.end = self.generate_random_edge_position()
         # Убедимся, что старт и цель не совпадают
-        while self.start == self.goal:
-            self.goal = self.generate_random_edge_position()
+        while self.start == self.end:
+            self.end = self.generate_random_edge_position()
 
         # Отрисовка сетки
         self.draw_grid()
@@ -103,7 +109,7 @@ class MainWindow(QMainWindow):
         # Убираем стартовую и целевую точки и цели из возможных препятствий
         all_cells.remove((0, 0))  # Стартовая точка
         all_cells.remove((9, 9))  # Целевая точка
-        all_cells = [cell for cell in all_cells if cell not in self.intermediate_points]
+        all_cells = [cell for cell in all_cells if cell not in self.goals]
 
         # Генерация случайных n препятствий
         obstacles = random.sample(all_cells, self.n_obstacles)
@@ -118,7 +124,7 @@ class MainWindow(QMainWindow):
         all_cells.remove((9, 9))  # Целевая точка
 
         # Генерация случайных промежуточных точек
-        intermediate_points = random.sample(all_cells, self.n_intermediate)
+        intermediate_points = random.sample(all_cells, self.n_goals)
         return intermediate_points
 
     def draw_grid(self):
@@ -141,14 +147,14 @@ class MainWindow(QMainWindow):
                 if (x, y) == self.start:
                     label.setPixmap(self.start_icon)
                 # Целевая точка
-                elif (x, y) == self.goal:
-                    label.setPixmap(self.goal_icon)
+                elif (x, y) == self.end:
+                    label.setPixmap(self.end_icon)
                 # Препятствия
                 elif (x, y) in self.obstacles:
                     label.setPixmap(self.obstacle_icon)
                 # Промежуточные точки
-                elif (x, y) in self.intermediate_points:
-                    label.setPixmap(self.intermediate_icon)
+                elif (x, y) in self.goals:
+                    label.setPixmap(self.goal_icon)
                 else:
                     # Просто пустая клетка
                     label.setText("")
@@ -162,7 +168,7 @@ class MainWindow(QMainWindow):
             self.grid.add_obstacle(obstacle)
 
         # Комбинируем точки для поиска пути
-        points = [self.start] + self.intermediate_points + [self.goal]
+        points = [self.start] + self.goals + [self.end]
 
         if not self.state_manager.is_state(StatesEnum.IDLE):
             QMessageBox.warning(self, "Ошибка", "Робот уже выполняет задачу!")
@@ -188,13 +194,13 @@ class MainWindow(QMainWindow):
         self.start = self.generate_random_edge_position()
         self.draw_grid()
 
-    def generate_goal(self):
+    def generate_end(self):
         """ Генерация случайной целевой точки на границе """
-        self.goal = self.generate_random_edge_position()
+        self.end = self.generate_random_edge_position()
 
         # Убедимся, что старт и цель не совпадают
-        while self.start == self.goal:
-            self.goal = self.generate_random_edge_position()
+        while self.start == self.end:
+            self.end = self.generate_random_edge_position()
 
         self.draw_grid()
 
@@ -237,9 +243,9 @@ class MainWindow(QMainWindow):
         step = self.path[self.step_index]
         self.step_index += 1
 
-        if step in self.intermediate_points:
+        if step in self.goals:
             self.state_manager.set_state(StatesEnum.CAPTURE)
-        elif step == self.goal:
+        elif step == self.end:
             self.state_manager.set_state(StatesEnum.FINISH)
         else:
             self.state_manager.set_state(StatesEnum.MOVING)
