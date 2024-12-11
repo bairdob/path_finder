@@ -72,8 +72,34 @@ class MainWindow(QMainWindow):
         # Переменные для старта и цели
         self.start, self.end = self.init_start_end_points()
 
+        # Установка reducers
+        self.state_manager.set_reducer("START_SEARCH", self.start_search_reducer)
+        self.state_manager.set_reducer("GOAL_CAPTURED", self.goal_captured_reducer)
+        self.state_manager.set_reducer("FINISH", self.finish_reducer)
+        self.state_manager.set_reducer("MOVE_STEP", self.move_step_reducer)
+
         # Отрисовка сетки
         self.draw_grid()
+
+    def start_search_reducer(self, current_state):
+        if current_state == StatesEnum.IDLE:
+            self.state_manager.set_state(StatesEnum.PATH_FINDING)
+        return self.state_manager.state
+
+    def move_step_reducer(self, current_state):
+        if current_state in (StatesEnum.PATH_FINDING, StatesEnum.CAPTURE):
+            self.state_manager.set_state(StatesEnum.MOVING)
+        return self.state_manager.state
+
+    def goal_captured_reducer(self, current_state):
+        if current_state == StatesEnum.MOVING:
+            self.state_manager.set_state(StatesEnum.CAPTURE)
+        return self.state_manager.state
+
+    def finish_reducer(self, current_state):
+        if current_state in (StatesEnum.MOVING, StatesEnum.CAPTURE):
+            self.state_manager.set_state(StatesEnum.FINISH)
+        return self.state_manager.state
 
     def set_background_image(self, widget, image_path):
         """Устанавливает фоновое изображение для виджета"""
@@ -167,7 +193,7 @@ class MainWindow(QMainWindow):
             return
 
         # Здесь будем вызывать алгоритм A* через все промежуточные точки
-        self.state_manager.set_state(StatesEnum.PATH_FINDING)
+        self.state_manager.dispatch("START_SEARCH")
         a_star = AStar(self.grid)
         full_path = []
         for i in range(len(points) - 1):
@@ -235,12 +261,7 @@ class MainWindow(QMainWindow):
         step = self.path[self.step_index]
         self.step_index += 1
 
-        if step in self.goals:
-            self.state_manager.set_state(StatesEnum.CAPTURE)
-        elif step == self.end:
-            self.state_manager.set_state(StatesEnum.FINISH)
-        else:
-            self.state_manager.set_state(StatesEnum.MOVING)
+        self.handle_step_change(step)
 
         # Очищаем предыдущий шаг
         if self.step_index > 1:
@@ -254,6 +275,14 @@ class MainWindow(QMainWindow):
 
         # Обновляем интерфейс
         QApplication.processEvents()
+
+    def handle_step_change(self, step):
+        if step in self.goals:
+            self.state_manager.dispatch("GOAL_CAPTURED")
+        elif step == self.end:
+            self.state_manager.dispatch("FINISH")
+        elif step not in self.goals:
+            self.state_manager.dispatch("MOVE_STEP")
 
     def initialize_goal_from_ontology(self):
         """Инициализация цедей на основе данных из онтологии"""
